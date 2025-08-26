@@ -4,26 +4,21 @@ persona(connie, 154, 50).
 persona(dana, 180, 70).
 persona(esteban, 193, 40).
 
-
-
 %Parte B
 
 algunoSuperaA(Persona):-
     persona(Persona, _, Fuerza),
-    findall(Otro, (persona(Otro,_,FuerzaOtro), FuerzaOtro >= Fuerza), Otros),
+    findall(Otro, (persona(Otro,_,FuerzaOtro), FuerzaOtro > Fuerza), Otros),
     length(Otros, Longitud),
     Longitud > 0.
 
 
 
-% El código resuelve el problema planteado? 
+% ¿El código resuelve el problema planteado? 
 
-% No, porque el findall encuentra todas las personas cuya fuerza sea mayor o igual a la de la persona original,
-% lo cual siempre va a incluir a la misma persona, y luego se verifica que la lista no sea vacia. 
-% Por lo tanto, siempre va a ser true.
+% Sí, resuelve el problema planteado. Encuentra todas las personas con más fuerza que la persona dada, arma una lista de Otros, y si su longitud es mayor que cero, es porque existe alguno que supera.
 
-
-% El predicado algunoSuperaA es inversible?
+% ¿El predicado algunoSuperaA es inversible?
 
 % Si, porque se liga Persona con el predicado "persona", que es un hecho, los cuales son siempre inversibles.
 
@@ -49,49 +44,56 @@ obstaculo(barril(humedo, 50), 26).
 obstaculo(aro(2), 27).
 obstaculo(pared(5), 90).
 
-laMetaEstaEn1(Metros):-
-  obstaculo(_, Metros),
-  findall(Obs, (obstaculo(Obs, OtrosMetros), OtrosMetros > Metros), Obstaculos),
+laMetaEstaEn1(Posicion):-
+  obstaculo(_, Posicion),
+  findall(Obs, (obstaculo(Obs, Pos), 
+      Pos > Posicion), Obstaculos),
   length(Obstaculos, 0).
 
-laMetaEstaEn2(Metros):-
-  forall(obstaculo(_, OtrosMetros), OtrosMetros < Metros).
+laMetaEstaEn2(Posicion):-
+  forall(obstaculo(_, Pos), Posicion >= Pos).
 
 
+%¿Ambas soluciones funcionan igual? Justificar conceptualmente usando ejemplos de consulta individuales y existenciales con sus respuestas en cada caso.
 
-%¿Ambas soluciones funcionan igual? 
+% No funcionan igual. laMetaEstaEn1 es cierto sólo para la posición en la que esté el último obstáculo,
+% mientras que laMetaEstaEn2 es cierta para cualquier posición igual o superior al último obstáculo. 
+% Consulta individual que ejemplifica la diferencia:
+% ?- laMetaEstaEn1(100).
+% false.
+% ?- laMetaEstaEn2(100).
+% true.
+% Además, laMetaEstaEn1 es inversible pero la otra no.
+% Consulta existencial que ejemplifica la diferencia:
+% ?- laMetaEstaEn1(Meta).
+% Meta = 90.
+% ?- laMetaEstaEn2(Meta).
+% Error: arguments are not sufficiently instantiated 
+% El problema es el >=, al que llega sin ligar la variable Posicion.
 
-% No, porque una usa findall y otra forall, los cuales funcionan distinto 
-% No, porque la que usa forall no es inversible y la que usa findall si, por lo que funcionan distinto.
-% Si, porque dan el mismo resultado.
-% Si, porque ambos usan el motor de backtracking, por lo que en el fondo funcionan igual.
+laMetaEstaEn(Posicion):-
+    obstaculo(_, Posicion),
+    not(hayObstaculoMasAdelante(Posicion)).
 
-laMetaEstaEnDistinto(Metros):-
-    not(hayObstaculoMasAdelante(Metros)).
-
-hayObstaculoMasAdelante(Metros):-
-    obstaculo(_, MetrosDelante),
-    MetrosDelante > Metros.
+hayObstaculoMasAdelante(Posicion):-
+    obstaculo(_, PosicionDelante),
+    PosicionDelante > Posicion.
 
 % Parte D
 
-% Es sencillo agregar un nuevo tipo de obstáculo sin modificar el código existente?
+% a) Es sencillo agregar un nuevo tipo de obstáculo sin cambiar el predicado puedeDarUnPaso.
+% Falso, hay que agregar una cláusula al predicado. (Además, repetir mucha lógica)
 
-% Si, no hace falta modificar codigo existente, solo es necesario copiar y pegar puedeDarUnPaso, lo cual es sencillo.
+% Hay conceptos del dominio que no están en el código.
+% Verdadero, falta plantear los conceptos de que una persona puede superar un obstáculo y el de la dificultad.
 
-% Hay conceptos del dominio que no están en el código?
-
-% Si, falta plantear los conceptos de que una persona puede superar un obstaculo y el de la dificultad.
-
-% Se perite logica?
-
-% Si, se perite casi toda la logica en todos los predicados, solo cambiando la particularidad segun el tipo de obstaculo
+% Se repite logica.
+% Verdadero,  se repite casi toda la logica en todos los predicados, sólo cambiando la particularidad según el tipo de obstáculo. En particular la lógica que se repite son los conceptos de dominio del punto anterior.
 
 
 puedeDarUnPaso(Persona, Desde, Hasta):-
     aperturaDeBrazosSuficiente(Persona, Desde, Hasta),
     puedeSuperarObstaculoEn(Persona, Hasta).
-
 
 aperturaDeBrazosSuficiente(Persona, Desde, Hasta):-
     persona(Persona, Apertura, _),
@@ -112,16 +114,6 @@ dificultad(aro(Grosor), Grosor).
 dificultad(pared(Altura), Dificultad):-
     Dificultad is Altura * 3.
 
-
-% version 1
-dificultad(barril(humedo,Diametro), Dificultad):-
-    Dificultad is 50 * Diametro / 10.
-
-dificultad(barril(seco,Diametro), Dificultad):-
-    Dificultad is 30 * Diametro / 10.
-
-% version 2
-
 dificultad(barril(Tipo,Diametro), Dificultad):-
     factorTipoBarril(Tipo, Factor),
     Dificultad is Factor * Diametro / 10.
@@ -129,27 +121,12 @@ dificultad(barril(Tipo,Diametro), Dificultad):-
 factorTipoBarril(humedo, 50).
 factorTipoBarril(seco, 30).
 
-
 % Parte E
 
 puedeGanarDesde(Persona, PosicionFinal):-
-    persona(Persona, _, _),
-    obstaculo(_, PosicionFinal),
-    not(siguientePosicion(PosicionFinal, _)).
+    puedeSuperarObstaculoEn(Persona, PosicionFinal), % por si arranca en el final
+    laMetaEstaEn(PosicionFinal).
 
 puedeGanarDesde(Persona, PosicionActual):-
-    persona(Persona, _, _),
-    obstaculo(_, PosicionActual),
-    siguientePosicion(PosicionActual, PosicionSiguiente),
     puedeDarUnPaso(Persona, PosicionActual, PosicionSiguiente),
     puedeGanarDesde(Persona, PosicionSiguiente).
-
-siguientePosicion(PosicionActual, PosicionSiguiente):-
-    obstaculo(_, PosicionSiguiente),
-    PosicionSiguiente > PosicionActual,
-    not(hayObstaculoIntermedio(PosicionActual, PosicionSiguiente)).
-
-hayObstaculoIntermedio(PosicionInicial, PosicionFinal):-
-    obstaculo(_, PosicionIntermedia),
-    PosicionIntermedia > PosicionInicial,
-    PosicionIntermedia < PosicionFinal.
